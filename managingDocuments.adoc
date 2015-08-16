@@ -1,0 +1,161 @@
+= Document meta-model
+:toc:macro
+
+We deal with documents every day, sometimes in some ways we are not aware of. The idea of sharing ideas in a persistent support has been one the first thing that made the human kind what is it.  From https://en.wikipedia.org/wiki/Cave_of_Altamira[Altamir�s paintings] in Spain to modern https://www.wikipedia.org/[Wikipedia] documents are about sharing knowledge.
+
+So, it should be normal to assume that we are familiar with them and we know how to deal with them. I mean, is just a few words and images in a linear structure. Once it�s finished, just press btn:[Save] and btn:[Send] them.
+
+Well, this is not true and this article talks about the complexity about dealing with groups of documents especially in digital system. In this article you will find an example model to help analyse document�s repositories.
+
+// for instance, if you have lots of versions, you may consider versioning metadata.
+
+toc::[]
+
+== What is a document
+
+Pretty much everyone has an idea of what a document is. Depending on their daily activities, different people may describe them as:
+. A piece of paper with some text.
+. That filled form I had to provide to get my taxes back.
+. An article on Wikipedia, a blog post, _�does a twit count for a document, isn�t it too short?_
+. My college degree.
+. Simple, a _Word_ file.
+Pretty much all of them hit it and we all can recognize a document when put in front of us. But a document is something far more complex and that. To begin with, a document is not only the content itself, but it includes metadata associated to it, for instance, the name of the file on the filesystem or the URL pointing to it.
+
+.Metadata is also part of a document
+image::https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/metadata.png[]
+
+Just with some quick though one may find several way to classify documents depending on many characteristics:
+
+. Is it self-contained or links other elements?
+. Does the document have more than one version?
+. In what format is it stored (MS Word, plain text, PNG, etc.)? Can it be transformed into other formats?.footnote:[This transformation process is usually also refered as renderitzations]
+. What kind of metadata is included?
+. Is it a structured like an XML or is it free format? footnote:[Obviously all document formats have a formal structure but this case is from the final presentation point of view] and so on.
+
+That's only focusing on what features are involved in the constructions, presentation and basic storage of a document. If you enter into other aspects provided by content management tools like security, preservation, language support this becomes even more complex.
+For the sake of this analysis we can define the following model:
+
+anchor:include-note[]For simplicity let�s assume that the document entity is an aggregator of the different versions a document. This means, that the _INCLUDE_ relationship is just a dependency relationship, we are not discussing here different types of inclusion or if a document may include some specific version, or even a renderitzation (we will hint that later).
+
+== Let�s play with the data
+
+=== Data set
+To test the model here is some data. To avoid looking into the data, this model represents the next scenario.
+
+We have 3 documents:
+* A book: it has 2 versions (_Draft_ and _Final_) each one with its own metadata, and original content. However, only the 2nd version generates an output, in PDF format.
+* A possible User manual inspired by GitHub README�s. This manual has 3 versions and in the third one a _Contributor�s guide_ was include (refer to the note about << include-note, include meaning>>). Also, until the 3rd version, the manual was only published as HTML, from that version PDF was added to the pipeline.
+* _Contributor�s guide_ included by the 2nd document. This document, being recent and not published on its own, does not have any version or output yet.
+
+[source,cypher]
+.Document 1 data
+----
+//
+// Document 1 - Book - Anathem by Neal Stephenson
+//
+CREATE (doc1:Document {id:'1', name: 'Anathem (Book)'})
+
+// HAS 2 versions
+CREATE (version11:Version {name:'ver.1'})
+CREATE (version12:Version {name:'ver.2'})
+CREATE (doc1)-[:HAS]->(version11)
+CREATE (doc1)-[:HAS]->(version12)
+
+// Each version has it's own source content, but only version 2 GENERATES 1 PDF Output
+CREATE (content11:Content {name:'anathem_draft.doc', mimetype:'application/msword'})
+CREATE (content12:Content {name:'anathem_final.doc', mimetype:'application/msword'})
+CREATE (version11)-[:IS_MADE_OF]->(content11)
+CREATE (version12)-[:IS_MADE_OF]->(content12)
+CREATE (version12)-[:GENERATES]->(pdf)
+
+// Each version has it's own metadata ASSOCIATED
+CREATE (metadata11:Metadata {title:'Anathem (DRAFT)', author:'Neal Stephenson', created:'2006-01-01'})
+CREATE (metadata12:Metadata {title:'Anathem', author:'Neal Stephenson', created:'2008-09-09'})
+CREATE (version11)-[:LINKS]->(metadata11)
+CREATE (version12)-[:LINKS]->(metadata12)
+----
+
+[source,cypher]
+.Document 2 data
+----
+//
+// Document 2 - Book - Anathem by Neal Stephenson
+//
+CREATE (doc2:Document {id:'2', name: 'GitHub Project\'s README'})
+
+// HAS 2 versions
+CREATE (version21:Version {name:'ver.1'})
+CREATE (version22:Version {name:'ver.2'})
+CREATE (version23:Version {name:'ver.3'})
+CREATE (doc2)-[:HAS]->(version21)
+CREATE (doc2)-[:HAS]->(version22)
+CREATE (doc2)-[:HAS]->(version23)
+
+// Each version has it's own source content, we store the output of each version so people can check previous versions
+CREATE (content21:Content {name:'README.adoc', mimetype:'text/x-asciidoc'})
+CREATE (content22:Content {name:'README.adoc', mimetype:'text/x-asciidoc'})
+CREATE (content23:Content {name:'README.adoc', mimetype:'text/x-asciidoc'})
+CREATE (version21)-[:IS_MADE_OF]->(content21)
+CREATE (version22)-[:IS_MADE_OF]->(content22)
+CREATE (version23)-[:IS_MADE_OF]->(content23)
+CREATE (version21)-[:GENERATES]->(html)
+CREATE (version22)-[:GENERATES]->(html)
+CREATE (version23)-[:GENERATES]->(html)
+// In version 3 we added PDF output
+CREATE (version23)-[:GENERATES]->(pdf)
+
+// Each version has it's own metadata ASSOCIATED
+CREATE (metadata21:Metadata {title:'Reference documentation', author:'userX', created:'2013-12-01'})
+CREATE (metadata22:Metadata {title:'Reference documentation', author:'uxerY', created:'2015-01-10'})
+CREATE (metadata23:Metadata {title:'Reference documentation & Contributor\'s guide', author:'userZ', created:'2015-07-06'})
+CREATE (version21)-[:LINKS]->(metadata21)
+CREATE (version22)-[:LINKS]->(metadata22)
+CREATE (version23)-[:LINKS]->(metadata23)
+----
+
+[source,cypher]
+.Document 3 data
+----
+//
+// Document 3 is used by 2
+//
+CREATE (doc3:Document {id:'3', name: 'Contributors\' guide'})
+CREATE (version31:Version {name:'ver.1'})
+CREATE (doc3)-[:HAS]->(version31)
+// This document only has 1 version and does not generate output on it's own
+CREATE (content31:Content {name:'contributors.adoc', mimetype:'text/x-asciidoc'})
+CREATE (version31)-[:IS_MADE_OF]->(content31)
+CREATE (metadata31:Metadata {title:'Contributors\' guide', author:'uxerZ', created:'2015-07-04'})
+CREATE (version31)-[:LINKS]->(metadata31)
+
+// Finally, Document 2 includes Document 3
+CREATE (doc2)-[:INCLUDES]->(doc3)
+----
+
+Also, here you'll find a more friendly model image::https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/model-friendly-formatting.svg[].
+// Image we have  system in which uses have to edit their documents and see them on screen and then a batch process to build the renderitzations.
+First, let's see how unique documents we have to work with, that a use when he wants to see a document, he sees all included documents
+// select all documents and all versions.
+Depending of the relation is 1:1 we should improve how we fetch them, maybe with some caching.
+// Also we want to see how many includes are repeated, to see if we should cache them
+We can then define the next examples and start analysing it to see how we should implement it.
+Here we want to see how many unique document we need to deliver, that is how many unique renderizations we have. That will give us an idea of how many
+Also
+
+// Then we want to see the storage used�to see version
+
+
+And see
+//
+
+
+Function
+Formal documents,
+
+== Possible solutions
+
+
+==
+
+
+ASSOCIATE
