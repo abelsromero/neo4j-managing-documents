@@ -1,28 +1,28 @@
 = Document meta-model
-:toc:macro
+:images-url: https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/
+:toc: macro
 
-We deal with documents every day, sometimes in some ways we are not aware of. The idea of sharing ideas in a persistent support has been one the first thing that made the human kind what is it.  From https://en.wikipedia.org/wiki/Cave_of_Altamira[Altamir�s paintings] in Spain to modern https://www.wikipedia.org/[Wikipedia] documents are about sharing knowledge.
+We deal with documents every day, sometimes in some ways we are not aware of. The idea of sharing ideas in a persistent support has been one the first thing that made the human kind what is it.  From https://en.wikipedia.org/wiki/Cave_of_Altamira[Altamira's paintings] in Spain to modern https://www.wikipedia.org/[Wikipedia] documents are about sharing knowledge.
 
-So, it should be normal to assume that we are familiar with them and we know how to deal with them. I mean, is just a few words and images in a linear structure. Once it�s finished, just press btn:[Save] and btn:[Send] them.
+So, it should be normal to assume that we are familiar with them and we know how to deal with them. I mean, is just a few words and images in a linear structure. Once it's finished, just press btn:[Save] and btn:[Send] them.
 
-Well, this is not true and this article talks about the complexity about dealing with groups of documents especially in digital system. In this article you will find an example model to help analyse document�s repositories.
+Well, this is not true and this article talks about the complexity about dealing with groups of documents especially in digital system. In this article you will find an example model to help analyse document's repositories.
 
-// for instance, if you have lots of versions, you may consider versioning metadata.
-
-toc::[]
+// Causes an error
+// toc::[]
 
 == What is a document
 
 Pretty much everyone has an idea of what a document is. Depending on their daily activities, different people may describe them as:
 . A piece of paper with some text.
 . That filled form I had to provide to get my taxes back.
-. An article on Wikipedia, a blog post, _�does a twit count for a document, isn�t it too short?_
+. An article on Wikipedia, a blog post, _¿does a twit count as a document, isn't it too shot?_
 . My college degree.
 . Simple, a _Word_ file.
 Pretty much all of them hit it and we all can recognize a document when put in front of us. But a document is something far more complex and that. To begin with, a document is not only the content itself, but it includes metadata associated to it, for instance, the name of the file on the filesystem or the URL pointing to it.
 
 .Metadata is also part of a document
-image::https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/metadata.png[]
+image::{images-url}metadata.png[]
 
 Just with some quick though one may find several way to classify documents depending on many characteristics:
 
@@ -35,21 +35,28 @@ Just with some quick though one may find several way to classify documents depen
 That's only focusing on what features are involved in the constructions, presentation and basic storage of a document. If you enter into other aspects provided by content management tools like security, preservation, language support this becomes even more complex.
 For the sake of this analysis we can define the following model:
 
-anchor:include-note[]For simplicity let�s assume that the document entity is an aggregator of the different versions a document. This means, that the _INCLUDE_ relationship is just a dependency relationship, we are not discussing here different types of inclusion or if a document may include some specific version, or even a renderitzation (we will hint that later).
+anchor:include-note[]For simplicity let's assume that the document entity is an aggregator of the different versions a document. This means, that the _INCLUDE_ relationship is just a dependency relationship, we are not discussing here different types of inclusion or if a document may include some specific version, or even a renderitzation (we will hint that later).
 
-== Let�s play with the data
+== Let's play with the data
 
 === Data set
 To test the model here is some data. To avoid looking into the data, this model represents the next scenario.
 
 We have 3 documents:
-* A book: it has 2 versions (_Draft_ and _Final_) each one with its own metadata, and original content. However, only the 2nd version generates an output, in PDF format.
-* A possible User manual inspired by GitHub README�s. This manual has 3 versions and in the third one a _Contributor�s guide_ was include (refer to the note about << include-note, include meaning>>). Also, until the 3rd version, the manual was only published as HTML, from that version PDF was added to the pipeline.
-* _Contributor�s guide_ included by the 2nd document. This document, being recent and not published on its own, does not have any version or output yet.
 
+* A book: it has 2 versions (_Draft_ and _Final_) each one with its own metadata, and original content. However, only the 2nd version generates an output, in PDF format.
+* A possible User manual inspired by GitHub README's. This manual has 3 versions and in the third one a _Contributor's guide_ was include (refer to the note about << include-note, include meaning>>). Also, until the 3rd version, the manual was only published as HTML, from that version PDF was added to the pipeline.
+* _Contributor's guide_ included by the 2nd document. This document, being recent and not published on its own, does not have any version or output yet.
+
+//hide
+//setup
+//output
 [source,cypher]
-.Document 1 data
+.Initializations
 ----
+CREATE (html:Output {name:'Html'})
+CREATE (pdf:Output {name:'PDF'})
+
 //
 // Document 1 - Book - Anathem by Neal Stephenson
 //
@@ -73,11 +80,7 @@ CREATE (metadata11:Metadata {title:'Anathem (DRAFT)', author:'Neal Stephenson', 
 CREATE (metadata12:Metadata {title:'Anathem', author:'Neal Stephenson', created:'2008-09-09'})
 CREATE (version11)-[:LINKS]->(metadata11)
 CREATE (version12)-[:LINKS]->(metadata12)
-----
 
-[source,cypher]
-.Document 2 data
-----
 //
 // Document 2 - Book - Anathem by Neal Stephenson
 //
@@ -111,14 +114,8 @@ CREATE (metadata23:Metadata {title:'Reference documentation & Contributor\'s gui
 CREATE (version21)-[:LINKS]->(metadata21)
 CREATE (version22)-[:LINKS]->(metadata22)
 CREATE (version23)-[:LINKS]->(metadata23)
-----
 
-[source,cypher]
-.Document 3 data
-----
-//
 // Document 3 is used by 2
-//
 CREATE (doc3:Document {id:'3', name: 'Contributors\' guide'})
 CREATE (version31:Version {name:'ver.1'})
 CREATE (doc3)-[:HAS]->(version31)
@@ -127,35 +124,140 @@ CREATE (content31:Content {name:'contributors.adoc', mimetype:'text/x-asciidoc'}
 CREATE (version31)-[:IS_MADE_OF]->(content31)
 CREATE (metadata31:Metadata {title:'Contributors\' guide', author:'uxerZ', created:'2015-07-04'})
 CREATE (version31)-[:LINKS]->(metadata31)
+CREATE (version31)-[:GENERATES]->(html)
+
+// Document 4 is used by 2 and 6
+CREATE (doc4:Document {id:'4', name: 'User manual'})
+CREATE (version41:Version {name:'ver.1'})
+CREATE (version42:Version {name:'ver.2'})
+CREATE (doc4)-[:HAS]->(version41)
+CREATE (doc4)-[:HAS]->(version42)
+CREATE (content41:Content {name:'manual.adoc', mimetype:'text/x-asciidoc'})
+CREATE (content42:Content {name:'manual.adoc', mimetype:'text/x-asciidoc'})
+CREATE (version41)-[:IS_MADE_OF]->(content41)
+CREATE (version42)-[:IS_MADE_OF]->(content42)
+CREATE (metadat41:Metadata {title:'User manual', author:'uxerZ', created:'2015-06-01'})
+CREATE (metadat42:Metadata {title:'User manual', author:'uxerZ', created:'2015-07-04'})
+CREATE (version41)-[:LINKS]->(metadata41)
+CREATE (version42)-[:LINKS]->(metadata42)
+CREATE (version42)-[:GENERATES]->(html)
+
+// Document 5 is used by 2 and 6
+CREATE (doc5:Document {id:'5', name: 'Code examples'})
+CREATE (version51:Version {name:'ver.1'})
+CREATE (doc5)-[:HAS]->(version51)
+CREATE (content51:Content {name:'examples.adoc', mimetype:'text/x-asciidoc'})
+CREATE (version51)-[:IS_MADE_OF]->(content51)
+CREATE (metadata51:Metadata {title:'Code examples', author:'uxerY', created:'2015-06-20'})
+CREATE (version51)-[:LINKS]->(metadata51)
+CREATE (version51)-[:GENERATES]->(html)
+
+// Document 6 does not have content, only aggregates 4 in a PDF
+CREATE (doc6:Document {id:'6', name: 'Offline User manual'})
+CREATE (version61:Version {name:'ver.1'})
+CREATE (doc6)-[:HAS]->(version61)
+CREATE (metadata61:Metadata {title:'Offline User manual', author:'travisUser', created:'2015-08-03'})
+CREATE (version61)-[:LINKS]->(metadata61)
+CREATE (version61)-[:GENERATES]->(pdf)
+CREATE (version61)-[:GENERATES]->(html)
 
 // Finally, Document 2 includes Document 3
 CREATE (doc2)-[:INCLUDES]->(doc3)
+CREATE (doc2)-[:INCLUDES]->(doc4)
+
+CREATE (doc4)-[:INCLUDES]->(doc5)
+
+CREATE (doc6)-[:INCLUDES]->(doc4)
 ----
 
-Also, here you'll find a more friendly model image::https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/model-friendly-formatting.svg[].
-// Image we have  system in which uses have to edit their documents and see them on screen and then a batch process to build the renderitzations.
-First, let's see how unique documents we have to work with, that a use when he wants to see a document, he sees all included documents
-// select all documents and all versions.
-Depending of the relation is 1:1 we should improve how we fetch them, maybe with some caching.
-// Also we want to see how many includes are repeated, to see if we should cache them
-We can then define the next examples and start analysing it to see how we should implement it.
-Here we want to see how many unique document we need to deliver, that is how many unique renderizations we have. That will give us an idea of how many
-Also
+Here is the resulting graph.
 
-// Then we want to see the storage used�to see version
+// Removed on final version
+// Also, here you'll find a more friendly model link:https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/model-friendly-formatting.png[here].
+
+//graph
+
+=== Some use cases
+
+Imagine you are responsible for keeping a repository like the one presented.
+Certainly you'll want to obtain some statistic regarding the documents in order to optimize some tasks.
+
+To begin with some simple use examples.
+
+* *Obtaining number of outputs*
+
+[source,cypher]
+----
+MATCH (v)-[:GENERATES]->(n)
+RETURN n.name AS Output ,count(n) as Count
+----
+
+//table
+
+This allows you to plan your generations pipelines to see what can be run in parallel, what might require more resources.
+
+* *Seeing document dependencies*
+
+This will help you sorting your document to detect any possible bottle necks.
+Not only for output generation, but it will provide you a graphical representation of highly used documents which are probably revised by many people.
+
+[source,cypher]
+----
+MATCH (document:Document)-[:INCLUDES]->(included_document)
+RETURN document, included_document
+----
+
+//graph_result
 
 
-And see
-//
+If you have a document included by let's say 50 other documents, it would be a good idea to implement caching methods to avoid the cost of retrieving it any time.
+
+Of course, this depends on what kind of system yo use to store them.
+
+[TIP]
+====
+Even when using VCSs it's not a good idea to have documents that can be.
+This may cause a big number of edition conflict.
+
+Consider using each document to describe a concept and not build big documents with many sections.
+====
 
 
-Function
-Formal documents,
+* *Visualizing clean*
 
-== Possible solutions
+As the repository grows, at some point you will need to review what kind of outputs are required for each final document.
+
+Chances are that some outputs may not be needed or maybe some output format needs to be replaced.
+For those cases the following query provides that information.
+
+[source,cypher]
+----
+Match (d:Document)-[h]-(v:Version)-[r]->(o:Output) return DISTINCT (d),o
+----
+
+//table
+
+The aim of this report is to be able to estimate (qualitatively at least) the effort to act on some output.
+For instance, when migrating from PDF to epub it will be necessary to review and test that all content is correctly generated.
+
+Other possible simple analysis
+* Obtaining the number of versions for each document
+* Identifying the most used documents
+
+Those use cases are based on personal experiences but remember...the sky is the limit in what kind of information you can obtain from a complex model.
 
 
-==
+== Final notes
+To end this, just a few words on why using a graph database offers advantages on this kind of analysis.
 
+Certainly the example model is not too complex but, keep in mind that this is a simplification.
+Also, It could be argued that with little effort it could be build on top of a relational database.
 
-ASSOCIATE
+A real model becomes much more complex and specially interconnected (includes, versions, etc.). Not only that, a real model should take into consideration that:
+
+. Metadata is dynamic, with different sets of documents having different sets of properties. PDF may need to store the compliance version for instance.
+. The number of dependency relationships amongst documents can be typed and very varied. Inclusion is an example, but how about links? quotations? references? Each one of them requires different treatments and here is where a graph database shines.
+. The number of dependencies can become extremely high. Think of the Wikipedia as an example, trying to model that amount of relationships would require some extra work to efficiently deal with them in a conventional database.
+. Versions and outputs are documents on its own right. That is that a real model should consider them as subclasses of Document, making many relations recursive.
+
+I hope this serves to provide an insight of how to model a content repository in a graph database and why it becomes a useful tool to do so.
