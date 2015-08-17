@@ -1,25 +1,33 @@
-= Document meta-model
+= Modeling and analyzing a content repository
 :images-url: https://raw.githubusercontent.com/abelsromero/neo4j-managing-documents/master/images/
 :toc: macro
 
-We deal with documents every day, sometimes in some ways we are not aware of. The idea of sharing ideas in a persistent support has been one the first thing that made the human kind what is it.  From https://en.wikipedia.org/wiki/Cave_of_Altamira[Altamira's paintings] in Spain to modern https://www.wikipedia.org/[Wikipedia] documents are about sharing knowledge.
+We deal with documents every day, sometimes in some ways we are not aware of.
+The idea of sharing ideas in a persistent support has been one the first facts that made the human kind what is it.
+From https://en.wikipedia.org/wiki/Cave_of_Altamira[Altamira's paintings] in Spain to modern https://www.wikipedia.org/[Wikipedia] documents are anything that enables sharing knowledge.
 
-So, it should be normal to assume that we are familiar with them and we know how to deal with them. I mean, is just a few words and images in a linear structure. Once it's finished, just press btn:[Save] and btn:[Send] them.
+So, we shouldn't be afraid to assume that we are familiar with them and we know how to deal with them;
+" it is just a few words and images in a linear structure. Once it's finished, just press Save and Send them".
 
-Well, this is not true and this article talks about the complexity about dealing with groups of documents especially in digital system. In this article you will find an example model to help analyse document's repositories.
+Well, this is not true and this article talks about the complexity about dealing with groups of documents (especially in digital system).
+In this article you will find an example model to help analyze document's repositories and some examples of which kind of data can be extracted.
 
 // Causes an error
 // toc::[]
 
-== What is a document
+== What is a document?
 
 Pretty much everyone has an idea of what a document is. Depending on their daily activities, different people may describe them as:
-. A piece of paper with some text.
-. That filled form I had to provide to get my taxes back.
-. An article on Wikipedia, a blog post, _¿does a twit count as a document, isn't it too shot?_
-. My college degree.
-. Simple, a _Word_ file.
-Pretty much all of them hit it and we all can recognize a document when put in front of us. But a document is something far more complex and that. To begin with, a document is not only the content itself, but it includes metadata associated to it, for instance, the name of the file on the filesystem or the URL pointing to it.
+
+* A piece of paper with some text.
+* That filled form I had to provide to get my taxes back.
+* An article on Wikipedia, a blog post, _¿does a twit count as a document, isn't it too shot?_
+* My college degree.
+* Simple, a _Word_ file.
+
+Pretty much all of them hit it and we all can recognize a document when put in front of us.
+But a document is something far more complex and that.
+To begin with, a document is not only the content itself, but it includes metadata, for instance, the name of the file on the filesystem or the URL pointing to it.
 
 .Metadata is also part of a document
 image::{images-url}metadata.png[]
