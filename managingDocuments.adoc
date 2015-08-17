@@ -232,7 +232,7 @@ For those cases the following query provides that information.
 
 [source,cypher]
 ----
-Match (d:Document)-[h]-(v:Version)-[r]->(o:Output) return DISTINCT (d),o
+Match (d:Document)-[h]-(v:Version)-[r]->(o:Output) return DISTINCT (d.name),o.name
 ----
 
 //table
