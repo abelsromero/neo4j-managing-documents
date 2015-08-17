@@ -27,6 +27,7 @@ Pretty much everyone has an idea of what a document is. Depending on their daily
 
 Pretty much all of them hit it and we all can recognize a document when put in front of us.
 But a document is something far more complex and that.
+
 To begin with, a document is not only the content itself, but it includes metadata, for instance, the name of the file on the filesystem or the URL pointing to it.
 
 .Metadata is also part of a document
@@ -40,21 +41,36 @@ Just with some quick though one may find several way to classify documents depen
 . What kind of metadata is included?
 . Is it a structured like an XML or is it free format? footnote:[Obviously all document formats have a formal structure but this case is from the final presentation point of view] and so on.
 
-That's only focusing on what features are involved in the constructions, presentation and basic storage of a document. If you enter into other aspects provided by content management tools like security, preservation, language support this becomes even more complex.
-For the sake of this analysis we can define the following model:
+That's only focusing on features involved in the constructions, presentation and basic storage of a document.
+If you enter into other aspects provided by content management tools like security, preservation, multi-language support, etc. this becomes complex to the headache degree.
+For the sake of this analysis we have define the following simple model:
 
-anchor:include-note[]For simplicity let's assume that the document entity is an aggregator of the different versions a document. This means, that the _INCLUDE_ relationship is just a dependency relationship, we are not discussing here different types of inclusion or if a document may include some specific version, or even a renderitzation (we will hint that later).
+image::{images-url}model.png[]
+
+_For simplicity let's assume that the document entity is an aggregation of the different versions a document._
+_This means, that the `INCLUDE` relationship is just a dependency relationship._
+_We are not discussing here different types of inclusion or if a document may include some specific version. However, we will talk about that later._
 
 == Let's play with the data
 
-=== Data set
+=== The data set
 To test the model here is some data. To avoid looking into the data, this model represents the next scenario.
 
-We have 3 documents:
+We have 6 documents:
 
-* A book: it has 2 versions (_Draft_ and _Final_) each one with its own metadata, and original content. However, only the 2nd version generates an output, in PDF format.
-* A possible User manual inspired by GitHub README's. This manual has 3 versions and in the third one a _Contributor's guide_ was include (refer to the note about << include-note, include meaning>>). Also, until the 3rd version, the manual was only published as HTML, from that version PDF was added to the pipeline.
-* _Contributor's guide_ included by the 2nd document. This document, being recent and not published on its own, does not have any version or output yet.
+. A book: it has 2 versions (_Draft_ and _Final_) each one with its own metadata, and original content.
+However, only the 2nd version generates an output, in PDF format.
+. A possible User manual inspired by GitHub README's. This manual has 3 versions and in the third one a _Contributor's guide_ was includes.
+Also, until the 3rd version, the manual was only published as HTML, from that version, PDF was added to the pipeline.
+. _Contributor's guide_ included by the 2nd document.
+This document does not have any versions and can only be viewed as an stand-alone HTML.
+. _User Manual_ also included by the 2nd document.
+Similar to the previous one, it can be viewed as HTML and is included in the README.
+. _Code examples_ that are used in the _User Manual_.
+This document provides a small hint of how deep those include relationships can become.
+. _Offline User manual_.
+This is a special document, because it only links to the User Manual and it's purpose is to provide with a nice PDF to see offline.
+Since it is not mean to be accessible on the site, it does not include the _Contributor's guide_.
 
 //hide
 //setup
@@ -185,12 +201,12 @@ Here is the resulting graph.
 
 //graph
 
-=== Some use cases
+=== Analyzing the data set
 
 Imagine you are responsible for keeping a repository like the one presented.
-Certainly you'll want to obtain some statistic regarding the documents in order to optimize some tasks.
+Certainly you'll want to obtain some statistic regarding the documents in order to optimize some tasks and overall, help managing the repository.
 
-To begin with some simple use examples.
+To begin, here are some simple examples.
 
 * *Obtaining number of outputs*
 
@@ -202,12 +218,12 @@ RETURN n.name AS Output ,count(n) as Count
 
 //table
 
-This allows you to plan your generations pipelines to see what can be run in parallel, what might require more resources.
+This allows you to plan your generations pipelines to see, for instance, what can be run in parallel, or what kind of output may require more resources.
 
 * *Seeing document dependencies*
 
-This will help you sorting your document to detect any possible bottle necks.
-Not only for output generation, but it will provide you a graphical representation of highly used documents which are probably revised by many people.
+This will help you to detect any possible bottle necks.
+Not only for output generation, but it provides with graphical representation of highly used documents.
 
 [source,cypher]
 ----
@@ -217,26 +233,24 @@ RETURN document, included_document
 
 //graph_result
 
-
-If you have a document included by let's say 50 other documents, it would be a good idea to implement caching methods to avoid the cost of retrieving it any time.
+For instance, if you have a document included by let's say 50 other documents, it would be a good idea to implement caching methods to avoid the cost of retrieving it any time.
 
 Of course, this depends on what kind of system yo use to store them.
 
 [TIP]
 ====
-Even when using VCSs it's not a good idea to have documents that can be.
-This may cause a big number of edition conflict.
+Even when using VCSs it's not a good idea to have documents that is used by lots of others.
+Like in software, this is a form of https://en.wikipedia.org/wiki/Coupling_(computer_programming)[coupling] and may cause many issue, for instance merge conflicts.
 
-Consider using each document to describe a concept and not build big documents with many sections.
+Consider clearly stating for each document its purpose and content.
 ====
 
-
-* *Visualizing clean*
+* *Visualizing output per document*
 
 As the repository grows, at some point you will need to review what kind of outputs are required for each final document.
 
 Chances are that some outputs may not be needed or maybe some output format needs to be replaced.
-For those cases the following query provides that information.
+For those cases the following query provides for each document what output produces.
 
 [source,cypher]
 ----
@@ -246,20 +260,16 @@ Match (d:Document)-[h]-(v:Version)-[r]->(o:Output) return DISTINCT (d.name),o.na
 //table
 
 The aim of this report is to be able to estimate (qualitatively at least) the effort to act on some output.
-For instance, when migrating from PDF to epub it will be necessary to review and test that all content is correctly generated.
+For instance, if you have to migrate from PDF to epub it will be necessary to review and test that all content is correctly generated.
 
-Other possible simple analysis
-* Obtaining the number of versions for each document
-* Identifying the most used documents
-
-Those use cases are based on personal experiences but remember...the sky is the limit in what kind of information you can obtain from a complex model.
+Those use cases are based on personal experiences but remember...the sky is the limit in what kind of information you can obtain from a this or other models.
 
 
 == Final notes
 To end this, just a few words on why using a graph database offers advantages on this kind of analysis.
 
-Certainly the example model is not too complex but, keep in mind that this is a simplification.
-Also, It could be argued that with little effort it could be build on top of a relational database.
+Certainly the example model is not too complex but, it could be argued that with little effort it could be build on top of a relational database.
+But please, keep in mind that this is a simplification.
 
 A real model becomes much more complex and specially interconnected (includes, versions, etc.). Not only that, a real model should take into consideration that:
 
